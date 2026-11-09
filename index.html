@@ -333,24 +333,24 @@
             let card = document.createElement('div');
             card.className = 'expense-card';
 
-            // 智慧抓取商店名稱
+            // 【精準修正】：優先抓取第 2 欄（即消費項目/商家），避免被「現金」等支付方式覆蓋
             let storeName = "";
+            const keys = Object.keys(item);
+            // 嘗試抓取包含「項目」、「商家」、「消費」、「品名」但排除「支付」的欄位
             for (let key in item) {
                 let lowerKey = key.toLowerCase();
-                if (lowerKey.includes('項目') || lowerKey.includes('商家') || lowerKey.includes('消費') || lowerKey.includes('店家') || lowerKey.includes('品名')) {
+                if ((lowerKey.includes('項目') || lowerKey.includes('商家') || lowerKey.includes('消費') || lowerKey.includes('店家') || lowerKey.includes('品名')) && !lowerKey.includes('支付')) {
                     if (item[key] && typeof item[key] === 'string' && item[key].trim() !== "") {
                         storeName = item[key];
                         break;
                     }
                 }
             }
-            if (!storeName) {
-                for (let key in item) {
-                    let val = item[key];
-                    if (val && typeof val === 'string' && !val.includes('-') && !val.includes('$') && isNaN(Number(val)) && key !== '支付方式' && key !== '備註') {
-                        storeName = val;
-                        break;
-                    }
+            // 如果表頭名稱對不上，直接取資料陣列的第 2 個元素（對應試算表的 B 欄：消費項目/商家）
+            if (!storeName && keys.length >= 2) {
+                let secondColVal = item[keys[1]];
+                if (secondColVal && typeof secondColVal === 'string' && secondColVal !== '現金' && secondColVal !== '刷卡') {
+                    storeName = secondColVal;
                 }
             }
             storeName = storeName || '一般消費';
