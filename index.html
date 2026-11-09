@@ -11,6 +11,12 @@
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
         input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        
+        /* 分類 Tab 按鈕樣式 */
+        .tab-container { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 10px; border: 1px solid #ccc; background: #e9ecef; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; text-align: center; color: #495057; }
+        .tab-btn.active { background-color: #007bff; color: white; border-color: #007bff; }
+
         .btn-primary { background-color: #007bff; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; }
         .btn-primary:hover { background-color: #0056b3; }
         .btn-success { background-color: #28a745; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; }
@@ -42,16 +48,27 @@
 
 <div class="container">
     <h2>📖 記帳與新增資料</h2>
+
+    <!-- 分類切換 Tab -->
+    <div class="tab-container">
+        <div class="tab-btn active" id="tabHousehold" onclick="switchCategory('家用支出_主表')">家用支出</div>
+        <div class="tab-btn" id="tabPersonal" onclick="switchCategory('個人支出')">個人支出</div>
+        <div class="tab-btn" id="tabTax" onclick="switchCategory('年度稅金與固定規費')">稅金與規費</div>
+    </div>
+
     <div class="form-group">
         <label>消費日期：</label>
         <input type="date" id="inputDate">
     </div>
-    <div class="form-group">
+    
+    <!-- 家用專屬：發票號碼 -->
+    <div class="form-group" id="invoiceGroup">
         <label>發票號碼 / 銷貨單號 (選填)：</label>
         <input type="text" id="inputInvoice" placeholder="例如：AB12345678 (方便關聯明細)">
     </div>
+
     <div class="form-group">
-        <label>消費項目 / 商家：</label>
+        <label id="storeLabel">消費項目 / 商家：</label>
         <input type="text" id="inputStore" placeholder="例如：寶雅、全聯、午餐便當">
     </div>
     <div class="form-group">
@@ -71,8 +88,8 @@
         <input type="text" id="inputNote" placeholder="可選填（如：採買日用品）">
     </div>
     
-    <!-- 勾選是否輸入商品明細 -->
-    <div class="form-group">
+    <!-- 家用專屬：是否輸入商品明細 -->
+    <div class="form-group" id="detailCheckGroup">
         <label style="font-weight: normal; cursor: pointer;">
             <input type="checkbox" id="hasDetailsCheck" onchange="toggleDetailInput(this)" style="width: auto; margin-right: 5px;"> 
             🛒 是否輸入商品詳細明細 (如多樣物品)
@@ -100,7 +117,7 @@
     <h2>🔍 查詢歷史帳目</h2>
     <div class="form-group">
         <label>選擇查詢類別：</label>
-        <select id="queryCategory">
+        <select id="queryCategory" onchange="syncQueryCategory(this)">
             <option value="家用支出_主表">家用支出</option>
             <option value="個人支出">個人支出</option>
             <option value="年度稅金與固定規費">年度稅金與固定規費</option>
@@ -120,14 +137,47 @@
 </div>
 
 <script>
-    // 預設日期
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('inputDate').value = today;
     document.getElementById('startDate').value = "2026-11-07";
     document.getElementById('endDate').value = "2026-11-09";
 
-    // 已綁定您的專屬 Apps Script 網址
     const API_URL = "https://script.google.com/macros/s/AKfycbwmJRExkmcBwZIW_l4EovEdVNhipMFPWGCLzEeyshuV1uR3ObZhDLdEozrsCtfERry4/exec";
+
+    let currentSheet = "家用支出_主表";
+
+    // 切換上方記帳類別
+    function switchCategory(sheetName) {
+        currentSheet = sheetName;
+        document.getElementById('queryCategory').value = sheetName;
+
+        document.getElementById('tabHousehold').classList.remove('active');
+        document.getElementById('tabPersonal').classList.remove('active');
+        document.getElementById('tabTax').classList.remove('active');
+
+        if (sheetName === "家用支出_主表") {
+            document.getElementById('tabHousehold').classList.add('active');
+            document.getElementById('invoiceGroup').style.display = 'block';
+            document.getElementById('detailCheckGroup').style.display = 'block';
+            document.getElementById('storeLabel').innerText = "消費項目 / 商家：";
+        } else if (sheetName === "個人支出") {
+            document.getElementById('tabPersonal').classList.add('active');
+            document.getElementById('invoiceGroup').style.display = 'none';
+            document.getElementById('detailCheckGroup').style.display = 'none';
+            document.getElementById('detailSection').style.display = 'none';
+            document.getElementById('storeLabel').innerText = "消費項目 / 商家：";
+        } else {
+            document.getElementById('tabTax').classList.add('active');
+            document.getElementById('invoiceGroup').style.display = 'none';
+            document.getElementById('detailCheckGroup').style.display = 'none';
+            document.getElementById('detailSection').style.display = 'none';
+            document.getElementById('storeLabel').innerText = "項目名稱：";
+        }
+    }
+
+    function syncQueryCategory(select) {
+        switchCategory(select.value);
+    }
 
     function toggleDetailInput(checkbox) {
         const section = document.getElementById('detailSection');
@@ -165,22 +215,22 @@
         }
     }
 
-    // 完整且正確的資料寫入邏輯
+    // 儲存資料到試算表
     function submitData() {
         const data = {
-            sheetName: "家用支出_主表",
+            sheetName: currentSheet,
             date: document.getElementById('inputDate').value,
-            invoiceNo: document.getElementById('inputInvoice').value.trim(),
+            invoiceNo: currentSheet === "家用支出_主表" ? document.getElementById('inputInvoice').value.trim() : "",
             store: document.getElementById('inputStore').value.trim(),
             amount: parseFloat(document.getElementById('inputAmount').value) || 0,
             paymentType: document.getElementById('inputPaymentType').value,
             paymentName: document.getElementById('inputPaymentType').value,
             note: document.getElementById('inputNote').value.trim(),
-            hasDetails: document.getElementById('hasDetailsCheck').checked
+            hasDetails: currentSheet === "家用支出_主表" ? document.getElementById('hasDetailsCheck').checked : false
         };
 
         if (!data.store) {
-            alert("請填寫消費項目/商家！");
+            alert("請填寫項目名稱/商家！");
             return;
         }
 
@@ -207,7 +257,6 @@
             });
         }
 
-        // 使用 no-cors 模式確保 POST 順利送出並寫入試算表
         fetch(API_URL, {
             method: 'POST',
             mode: 'no-cors',
@@ -229,23 +278,22 @@
         })
         .then(() => {
             alert("成功儲存到試算表！");
-            // 清空欄位
             document.getElementById('inputInvoice').value = '';
             document.getElementById('inputStore').value = '';
             document.getElementById('inputAmount').value = '0';
             document.getElementById('inputNote').value = '';
-            document.getElementById('hasDetailsCheck').checked = false;
-            document.getElementById('detailSection').style.display = 'none';
-            
-            // 重設明細列
-            document.getElementById('detailRowsContainer').innerHTML = `
-                <div class="detail-row">
-                    <input type="text" placeholder="品名" class="d-name">
-                    <input type="number" placeholder="單價" class="d-price price-qty" oninput="calcTotal()">
-                    <input type="number" placeholder="數量" class="d-qty price-qty" value="1" oninput="calcTotal()">
-                    <button type="button" class="del-btn" onclick="removeRow(this)">刪除</button>
-                </div>
-            `;
+            if (currentSheet === "家用支出_主表") {
+                document.getElementById('hasDetailsCheck').checked = false;
+                document.getElementById('detailSection').style.display = 'none';
+                document.getElementById('detailRowsContainer').innerHTML = `
+                    <div class="detail-row">
+                        <input type="text" placeholder="品名" class="d-name">
+                        <input type="number" placeholder="單價" class="d-price price-qty" oninput="calcTotal()">
+                        <input type="number" placeholder="數量" class="d-qty price-qty" value="1" oninput="calcTotal()">
+                        <button type="button" class="del-btn" onclick="removeRow(this)">刪除</button>
+                    </div>
+                `;
+            }
         })
         .catch(err => {
             alert("儲存失敗：" + err.toString());
@@ -288,9 +336,9 @@
             let card = document.createElement('div');
             card.className = 'expense-card';
 
-            let storeName = item['消費項目/商家'] || item['消費項目'] || '消費項目';
-            let amount = Number(item['總金額'] || 0);
-            let dateStr = item['日期'] || '';
+            let storeName = item['消費項目/商家'] || item['消費項目'] || item['項目'] || '項目';
+            let amount = Number(item['總金額'] || item['金額'] || 0);
+            let dateStr = item['日期'] || item['應繳日期'] || '';
             let payment = item['支付方式'] || '';
             let bank = item['刷卡銀行'] || payment;
 
@@ -300,7 +348,7 @@
                 item.details.forEach(d => {
                     let unitPrice = Number(d['單價']) || 0;
                     let qty = Number(d['數量']) || 1;
-                    let subtotal = unitPrice * qty; // 完美自動相乘計算小計
+                    let subtotal = unitPrice * qty;
 
                     detailRows += `
                         <tr>
