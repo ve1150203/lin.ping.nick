@@ -61,7 +61,7 @@
         <input type="date" id="inputDate">
     </div>
     
-    <!-- 家用專屬：發票號碼 -->
+    <!-- 發票號碼 (家用與個人共用支援明細關聯) -->
     <div class="form-group" id="invoiceGroup">
         <label>發票號碼 / 銷貨單號 (選填)：</label>
         <input type="text" id="inputInvoice" placeholder="例如：AB12345678 (方便關聯明細)">
@@ -88,7 +88,7 @@
         <input type="text" id="inputNote" placeholder="可選填（如：採買日用品）">
     </div>
     
-    <!-- 家用專屬：是否輸入商品明細 -->
+    <!-- 是否輸入商品明細 (家用與個人皆開放) -->
     <div class="form-group" id="detailCheckGroup">
         <label style="font-weight: normal; cursor: pointer;">
             <input type="checkbox" id="hasDetailsCheck" onchange="toggleDetailInput(this)" style="width: auto; margin-right: 5px;"> 
@@ -161,12 +161,13 @@
             document.getElementById('detailCheckGroup').style.display = 'block';
             document.getElementById('storeLabel').innerText = "消費項目 / 商家：";
         } else if (sheetName === "個人支出") {
+            // 【升級】個人支出現在也支援發票號碼與商品明細輸入！
             document.getElementById('tabPersonal').classList.add('active');
-            document.getElementById('invoiceGroup').style.display = 'none';
-            document.getElementById('detailCheckGroup').style.display = 'none';
-            document.getElementById('detailSection').style.display = 'none';
+            document.getElementById('invoiceGroup').style.display = 'block';
+            document.getElementById('detailCheckGroup').style.display = 'block';
             document.getElementById('storeLabel').innerText = "消費項目 / 商家：";
         } else {
+            // 稅金與規費維持單筆簡單輸入
             document.getElementById('tabTax').classList.add('active');
             document.getElementById('invoiceGroup').style.display = 'none';
             document.getElementById('detailCheckGroup').style.display = 'none';
@@ -220,13 +221,13 @@
         const data = {
             sheetName: currentSheet,
             date: document.getElementById('inputDate').value,
-            invoiceNo: currentSheet === "家用支出_主表" ? document.getElementById('inputInvoice').value.trim() : "",
+            invoiceNo: currentSheet !== "年度稅金與固定規費" ? document.getElementById('inputInvoice').value.trim() : "",
             store: document.getElementById('inputStore').value.trim(),
             amount: parseFloat(document.getElementById('inputAmount').value) || 0,
             paymentType: document.getElementById('inputPaymentType').value,
             paymentName: document.getElementById('inputPaymentType').value,
             note: document.getElementById('inputNote').value.trim(),
-            hasDetails: currentSheet === "家用支出_主表" ? document.getElementById('hasDetailsCheck').checked : false
+            hasDetails: currentSheet !== "年度稅金與固定規費" ? document.getElementById('hasDetailsCheck').checked : false
         };
 
         if (!data.store) {
@@ -247,7 +248,7 @@
                         date: data.date,
                         store: data.store,
                         itemName: name,
-                        category: "日用",
+                        category: currentSheet === "個人支出" ? "個人" : "日用",
                         price: price,
                         qty: qty,
                         total: price * qty,
@@ -282,7 +283,7 @@
             document.getElementById('inputStore').value = '';
             document.getElementById('inputAmount').value = '0';
             document.getElementById('inputNote').value = '';
-            if (currentSheet === "家用支出_主表") {
+            if (currentSheet !== "年度稅金與固定規費") {
                 document.getElementById('hasDetailsCheck').checked = false;
                 document.getElementById('detailSection').style.display = 'none';
                 document.getElementById('detailRowsContainer').innerHTML = `
