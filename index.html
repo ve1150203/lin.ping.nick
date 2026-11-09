@@ -333,7 +333,7 @@
             let card = document.createElement('div');
             card.className = 'expense-card';
 
-            // 【終極智慧對應】：自動掃描物件中包含「項目」、「商家」、「消費」、「品名」或位於第2欄的文字作為店名
+            // 智慧抓取商店名稱
             let storeName = "";
             for (let key in item) {
                 let lowerKey = key.toLowerCase();
@@ -344,7 +344,6 @@
                     }
                 }
             }
-            // 如果還是找不到，取第一個非日期、非金額的字串屬性
             if (!storeName) {
                 for (let key in item) {
                     let val = item[key];
