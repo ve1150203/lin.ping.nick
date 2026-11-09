@@ -333,14 +333,42 @@
             let card = document.createElement('div');
             card.className = 'expense-card';
 
-            // 【終極防呆】：不管試算表欄位叫什麼名字，這裡會自動智慧尋找正確的值！
-            let storeName = item['消費項目/商家'] || item['消費項目'] || item['項目'] || item['店家'] || item['品名'] || '未知項目';
-            
-            // 智慧抓取金額（排除日期或非數字的干擾）
-            let rawAmount = item['總金額'] !== undefined ? item['總金額'] : (item['金額'] !== undefined ? item['金額'] : item['金額(NT$)']);
-            let amount = parseFloat(rawAmount) || 0;
+            // 【終極智慧對應】：自動掃描物件中包含「項目」、「商家」、「消費」、「品名」或位於第2欄的文字作為店名
+            let storeName = "";
+            for (let key in item) {
+                let lowerKey = key.toLowerCase();
+                if (lowerKey.includes('項目') || lowerKey.includes('商家') || lowerKey.includes('消費') || lowerKey.includes('店家') || lowerKey.includes('品名')) {
+                    if (item[key] && typeof item[key] === 'string' && item[key].trim() !== "") {
+                        storeName = item[key];
+                        break;
+                    }
+                }
+            }
+            // 如果還是找不到，取第一個非日期、非金額的字串屬性
+            if (!storeName) {
+                for (let key in item) {
+                    let val = item[key];
+                    if (val && typeof val === 'string' && !val.includes('-') && !val.includes('$') && isNaN(Number(val)) && key !== '支付方式' && key !== '備註') {
+                        storeName = val;
+                        break;
+                    }
+                }
+            }
+            storeName = storeName || '一般消費';
+
+            // 智慧抓取金額
+            let amount = 0;
+            for (let key in item) {
+                let lowerKey = key.toLowerCase();
+                if (lowerKey.includes('金額') || lowerKey.includes('總額') || lowerKey.includes('價')) {
+                    let val = parseFloat(item[key]);
+                    if (!isNaN(val) && val > 0) {
+                        amount = val;
+                        break;
+                    }
+                }
+            }
             if (amount === 0) {
-                // 如果直接抓不到，嘗試從物件的所有屬性裡找出數值
                 for (let key in item) {
                     let val = parseFloat(item[key]);
                     if (!isNaN(val) && val > 0 && key !== '數量' && key !== '單價') {
