@@ -61,7 +61,7 @@
         <input type="date" id="inputDate">
     </div>
     
-    <!-- 發票號碼 (家用與個人共用支援明細關聯) -->
+    <!-- 發票號碼 (家用與個人共用，支援明細關聯) -->
     <div class="form-group" id="invoiceGroup">
         <label>發票號碼 / 銷貨單號 (選填)：</label>
         <input type="text" id="inputInvoice" placeholder="例如：AB12345678 (方便關聯明細)">
@@ -88,7 +88,7 @@
         <input type="text" id="inputNote" placeholder="可選填（如：採買日用品）">
     </div>
     
-    <!-- 是否輸入商品明細 (家用與個人皆開放) -->
+    <!-- 是否輸入商品明細 (家用與個人皆支援) -->
     <div class="form-group" id="detailCheckGroup">
         <label style="font-weight: normal; cursor: pointer;">
             <input type="checkbox" id="hasDetailsCheck" onchange="toggleDetailInput(this)" style="width: auto; margin-right: 5px;"> 
@@ -146,7 +146,6 @@
 
     let currentSheet = "家用支出_主表";
 
-    // 切換上方記帳類別
     function switchCategory(sheetName) {
         currentSheet = sheetName;
         document.getElementById('queryCategory').value = sheetName;
@@ -161,13 +160,11 @@
             document.getElementById('detailCheckGroup').style.display = 'block';
             document.getElementById('storeLabel').innerText = "消費項目 / 商家：";
         } else if (sheetName === "個人支出") {
-            // 【升級】個人支出現在也支援發票號碼與商品明細輸入！
             document.getElementById('tabPersonal').classList.add('active');
             document.getElementById('invoiceGroup').style.display = 'block';
             document.getElementById('detailCheckGroup').style.display = 'block';
             document.getElementById('storeLabel').innerText = "消費項目 / 商家：";
         } else {
-            // 稅金與規費維持單筆簡單輸入
             document.getElementById('tabTax').classList.add('active');
             document.getElementById('invoiceGroup').style.display = 'none';
             document.getElementById('detailCheckGroup').style.display = 'none';
@@ -216,7 +213,6 @@
         }
     }
 
-    // 儲存資料到試算表
     function submitData() {
         const data = {
             sheetName: currentSheet,
@@ -349,7 +345,7 @@
                 item.details.forEach(d => {
                     let unitPrice = Number(d['單價']) || 0;
                     let qty = Number(d['數量']) || 1;
-                    let subtotal = unitPrice * qty;
+                    let subtotal = unitPrice * qty; // 完美自動相乘計算小計
 
                     detailRows += `
                         <tr>
