@@ -83,7 +83,6 @@
     <div id="detailSection">
         <label style="margin-bottom: 8px; color: #2c3e50;">請輸入商品明細清單：</label>
         <div id="detailRowsContainer">
-            <!-- 預設第一行明細 -->
             <div class="detail-row">
                 <input type="text" placeholder="品名" class="d-name">
                 <input type="number" placeholder="單價" class="d-price price-qty" oninput="calcTotal()">
@@ -127,15 +126,14 @@
     document.getElementById('startDate').value = "2026-11-07";
     document.getElementById('endDate').value = "2026-11-09";
 
-    const API_URL = "您的_APPS_SCRIPT_WEB_APP_URL"; // 請填入您的網頁應用程式 URL
+    // 已對應您最新的 Apps Script API 網址
+    const API_URL = "https://script.google.com/macros/s/AKfycbwmJRExkmcBwZIW_l4EovEdVNhipMFPWGCLzEeyshuV1uR3ObZhDLdEozrsCtfERry4/exec";
 
-    // 切換明細輸入區塊顯示
     function toggleDetailInput(checkbox) {
         const section = document.getElementById('detailSection');
         section.style.display = checkbox.checked ? 'block' : 'none';
     }
 
-    // 新增明細行
     function addDetailRow() {
         const container = document.getElementById('detailRowsContainer');
         const row = document.createElement('div');
@@ -149,13 +147,11 @@
         container.appendChild(row);
     }
 
-    // 刪除明細行
     function removeRow(btn) {
         btn.parentElement.remove();
         calcTotal();
     }
 
-    // 自動計算總金額
     function calcTotal() {
         const rows = document.querySelectorAll('.detail-row');
         let total = 0;
@@ -169,7 +165,6 @@
         }
     }
 
-    // 送出資料到後端
     function submitData() {
         const data = {
             sheetName: "家用支出_主表",
@@ -182,36 +177,9 @@
             note: document.getElementById('inputNote').value.trim(),
             hasDetails: document.getElementById('hasDetailsCheck').checked
         };
-
-        // 如果有勾選明細，搜集明細資料
-        let items = [];
-        if (data.hasDetails) {
-            const rows = document.querySelectorAll('.detail-row');
-            rows.forEach(r => {
-                let name = r.querySelector('.d-name').value.trim();
-                let price = parseFloat(r.querySelector('.d-price').value) || 0;
-                let qty = parseFloat(r.querySelector('.d-qty').value) || 1;
-                if (name) {
-                    items.push({
-                        invoiceNo: data.invoiceNo,
-                        date: data.date,
-                        store: data.store,
-                        itemName: name,
-                        category: "日用",
-                        price: price,
-                        qty: qty,
-                        total: price * qty,
-                        note: "手動填寫明細"
-                    });
-                }
-            });
-        }
-
-        // 這裡可以透過 fetch 呼叫您的 doPost 儲存
         alert("準備送出資料！");
     }
 
-    // 查詢歷史帳目
     function fetchHistory() {
         const category = document.getElementById('queryCategory').value;
         const startDate = document.getElementById('startDate').value;
@@ -235,7 +203,6 @@
             });
     }
 
-    // 渲染查詢結果（包含小計自動計算）
     function renderResults(dataList) {
         const container = document.getElementById('resultContainer');
         container.innerHTML = '';
@@ -261,7 +228,7 @@
                 item.details.forEach(d => {
                     let unitPrice = Number(d['單價']) || 0;
                     let qty = Number(d['數量']) || 1;
-                    let subtotal = unitPrice * qty; // 完美自動計算小計
+                    let subtotal = unitPrice * qty; // 自動相乘算出正確小計
 
                     detailRows += `
                         <tr>
