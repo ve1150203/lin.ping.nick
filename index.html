@@ -7,7 +7,7 @@
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 16px; background-color: #f4f6f8; color: #333; }
-    .card { background: white; padding: 24px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-width: 500px; margin: 0 auto; }
+    .card { background: white; padding: 24px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-width: 550px; margin: 0 auto; }
     h2 { margin-top: 0; font-size: 20px; text-align: center; color: #1a252c; }
     .nav-tabs { display: flex; gap: 6px; margin-bottom: 20px; border-bottom: 2px solid #e9ecef; padding-bottom: 8px; }
     .tab-btn { flex: 1; padding: 10px 4px; border: none; background: #e9ecef; color: #495057; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; }
@@ -15,24 +15,23 @@
     .form-group { margin-bottom: 16px; }
     label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #495057; }
     input, select { width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; font-size: 15px; outline: none; }
-    .btn-submit { width: 100%; padding: 14px; background: #198754; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    .btn-submit { width: 100%; padding: 14px; background: #198754; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; }
     .dynamic-field { display: none; }
-    .ocr-box { background: #e7f5ff; border: 2px dashed #74c0fc; border-radius: 10px; padding: 16px; text-align: center; margin-bottom: 20px; }
-    .ocr-btn { background: #1971c2; color: white; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-block; }
-    .ocr-status { font-size: 13px; color: #495057; margin-top: 8px; font-weight: 500; }
+    
+    /* 明細專用樣式 */
+    .detail-section { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 10px; padding: 16px; margin-top: 15px; display: none; }
+    .item-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+    .item-row input { padding: 8px; font-size: 14px; }
+    .btn-add { background: #0d6efd; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; }
+    .btn-del { background: #dc3545; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .checkbox-group { display: flex; align-items: center; gap: 8px; font-weight: bold; color: #0d6efd; margin-top: 10px; cursor: pointer; }
+    .checkbox-group input { width: auto; }
   </style>
 </head>
 <body>
 
 <div class="card">
   <h2>📖 家庭與個人記帳本</h2>
-
-  <!-- 拍照辨識區 (已結合您的 Gemini API Key) -->
-  <div class="ocr-box">
-    <label for="receiptImage" class="ocr-btn">📷 拍照 / 選擇發票收據</label>
-    <input type="file" id="receiptImage" accept="image/*" capture="environment" style="display:none;" onchange="recognizeReceipt(this)">
-    <div class="ocr-status" id="ocrStatus">點擊拍照，自動辨識日期、商家、金額與寶雅多樣明細</div>
-  </div>
   
   <div class="nav-tabs">
     <button type="button" class="tab-btn active" onclick="switchTab('household')">家用支出</button>
@@ -41,10 +40,16 @@
   </div>
 
   <form id="expenseForm">
-    <!-- 日期選擇（預設今天，可自由切換補記 11/8 等日期） -->
+    <!-- 消費日期 -->
     <div class="form-group">
       <label for="date">消費日期：</label>
       <input type="date" id="date" required>
+    </div>
+
+    <!-- 發票號碼 / 關聯單號 (方便核對明細) -->
+    <div class="form-group" id="invoiceGroup">
+      <label for="invoiceNo">發票號碼 / 銷貨單號 (選填)：</label>
+      <input type="text" id="invoiceNo" placeholder="例如：AB12345678 (方便核對同一筆明細)">
     </div>
 
     <div class="form-group">
@@ -66,7 +71,6 @@
       </select>
     </div>
 
-    <!-- 自由填寫銀行或信用卡名稱 -->
     <div class="form-group dynamic-field" id="paymentNameGroup">
       <label for="paymentName" id="paymentNameLabel">名稱：</label>
       <input type="text" id="paymentName" placeholder="例如：玉山 U Bear 卡 / 國泰世華">
@@ -77,19 +81,30 @@
       <input type="text" id="note" placeholder="可選填（如：採買日用品）">
     </div>
 
+    <!-- 是否展開輸入明細 (僅在家用支出顯示) -->
+    <div id="hasDetailOption">
+      <label class="checkbox-group">
+        <input type="checkbox" id="toggleDetail" onchange="toggleDetailSection()"> 🛒 是否輸入商品詳細明細 (如寶雅多樣物品)
+      </label>
+
+      <!-- 動態明細輸入區 -->
+      <div class="detail-section" id="detailSection">
+        <label>商品明細列表：</label>
+        <div id="itemList">
+          <!-- 預設第一筆 -->
+        </div>
+        <button type="button" class="btn-add" onclick="addItemRow()">+ 新增一筆商品</button>
+      </div>
+    </div>
+
     <button type="submit" class="btn-submit" id="submitBtn">儲存到試算表</button>
   </form>
 </div>
 
 <script>
-  // 您剛剛部署成功的 GAS Web App URL
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwmJRExkmcBwZIW_l4EovEdVNhipMFPWGCLzEeyshuV1uR3ObZhDLdEozrsCtfERry4/exec";
-  
-  // 您的 Gemini API Key
-  const GEMINI_API_KEY = "AQ.Ab8RN6JfyWQvfTHHDue9pobitaUnC_XRglhHXYtY0f4TnY5Orw";
 
   let currentTab = 'household';
-  let recognizedItems = [];
 
   document.getElementById('date').valueAsDate = new Date();
 
@@ -97,10 +112,24 @@
     currentTab = tab;
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     event.target.classList.add('active');
+    
     const label = document.getElementById('itemNameLabel');
-    if (tab === 'household') label.innerText = '消費項目 / 商家：';
-    else if (tab === 'personal') label.innerText = '個人消費項目：';
-    else if (tab === 'tax') label.innerText = '稅別 / 規費名稱：';
+    const hasDetailOption = document.getElementById('hasDetailOption');
+    const invoiceGroup = document.getElementById('invoiceGroup');
+
+    if (tab === 'household') {
+      label.innerText = '消費項目 / 商家：';
+      hasDetailOption.style.display = 'block';
+      invoiceGroup.style.display = 'block';
+    } else if (tab === 'personal') {
+      label.innerText = '個人消費項目：';
+      hasDetailOption.style.display = 'none';
+      invoiceGroup.style.display = 'none';
+    } else if (tab === 'tax') {
+      label.innerText = '稅別 / 規費名稱：';
+      hasDetailOption.style.display = 'none';
+      invoiceGroup.style.display = 'block';
+    }
   }
 
   function togglePaymentNameInput() {
@@ -123,57 +152,45 @@
     }
   }
 
-  // AI 拍照辨識收據與明細
-  async function recognizeReceipt(input) {
-    if (!input.files || !input.files[0]) return;
-    const file = input.files[0];
-    const status = document.getElementById('ocrStatus');
-    status.innerText = '⏳ AI 正在分析收據照片，請稍候...';
-
-    try {
-      const base64Data = await convertBase64(file);
-      const requestBody = {
-        contents: [{
-          parts: [
-            { text: "請解析這張收據/發票照片。請只回傳 JSON 格式（不要加 ```json 標記）：{\"date\":\"YYYY-MM-DD\",\"store\":\"商家名稱\",\"totalAmount\":數字,\"items\":[{\"itemName\":\"品名\",\"price\":數字,\"qty\":數字,\"total\":數字}]}" },
-            { inline_data: { mime_type: file.type, data: base64Data } }
-          ]
-        }]
-      };
-
-      const res = await fetch(`[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$){GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      });
-
-      const data = await res.json();
-      const rawText = data.candidates[0].content.parts[0].text.trim();
-      const cleanJsonStr = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-      const result = JSON.parse(cleanJsonStr);
-
-      if (result.date) document.getElementById('date').value = result.date;
-      if (result.store) document.getElementById('itemName').value = result.store;
-      if (result.totalAmount) document.getElementById('amount').value = result.totalAmount;
-      if (result.items && result.items.length > 0) {
-        recognizedItems = result.items;
-        document.getElementById('note').value = `自動抓取 ${result.items.length} 樣明細`;
-      }
-
-      status.innerText = `✅ 辨識成功！商家：${result.store || '未辨識'}，金額：$${result.totalAmount || 0} (${result.items ? result.items.length : 0} 項商品)`;
-    } catch (err) {
-      status.innerText = '❌ 辨識失敗，請手動確認或重新拍照。';
-      console.error(err);
+  // 切換明細區域開關
+  function toggleDetailSection() {
+    const isChecked = document.getElementById('toggleDetail').checked;
+    const section = document.getElementById('detailSection');
+    section.style.display = isChecked ? 'block' : 'none';
+    if (isChecked && document.getElementById('itemList').children.length === 0) {
+      addItemRow(); // 自動帶出第一行
     }
   }
 
-  function convertBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result.split(',')[1]);
-      reader.onerror = error => reject(error);
-    });
+  // 動態增加明細行
+  function addItemRow() {
+    const container = document.getElementById('itemList');
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.innerHTML = `
+      <input type="text" placeholder="品名 (例:衛生紙)" class="item-name" style="flex:2;" required>
+      <input type="number" placeholder="單價" class="item-price" style="flex:1;" oninput="calcTotal()" required>
+      <input type="number" placeholder="數量" class="item-qty" value="1" style="flex:1;" oninput="calcTotal()" required>
+      <button type="button" class="btn-del" onclick="this.parentElement.remove(); calcTotal();">✕</button>
+    `;
+    container.appendChild(row);
+  }
+
+  // 自動加總明細金額並填入總金額欄位
+  function calcTotal() {
+    let total = 0;
+    const names = document.querySelectorAll('.item-name');
+    const prices = document.querySelectorAll('.item-price');
+    const qtys = document.querySelectorAll('.item-qty');
+
+    for (let i = 0; i < names.length; i++) {
+      const p = Number(prices[i].value) || 0;
+      const q = Number(qtys[i].value) || 0;
+      total += p * q;
+    }
+    if (document.getElementById('toggleDetail').checked && total > 0) {
+      document.getElementById('amount').value = total;
+    }
   }
 
   // 表單送出
@@ -183,9 +200,13 @@
     submitBtn.innerText = '正在寫入試算表...';
     submitBtn.disabled = true;
 
+    const hasDetails = document.getElementById('toggleDetail').checked;
+    const invoiceNo = document.getElementById('invoiceNo').value.trim();
+
     let targetSheet = '';
     let payload = {
       date: document.getElementById('date').value,
+      invoiceNo: invoiceNo,
       amount: Number(document.getElementById('amount').value),
       paymentType: document.getElementById('paymentType').value,
       paymentName: document.getElementById('paymentType').value === '現金' ? '現金' : document.getElementById('paymentName').value,
@@ -195,7 +216,7 @@
     if (currentTab === 'household') {
       targetSheet = '家用支出_主表';
       payload.store = document.getElementById('itemName').value;
-      payload.hasDetails = recognizedItems.length > 0;
+      payload.hasDetails = hasDetails;
     } else if (currentTab === 'personal') {
       targetSheet = '個人支出';
       payload.item = document.getElementById('itemName').value;
@@ -209,25 +230,38 @@
 
     payload.sheetName = targetSheet;
 
+    // 1. 先寫入主表
     fetch(GAS_WEB_APP_URL, {
       method: 'POST',
       body: JSON.stringify(payload)
     })
     .then(res => res.json())
     .then(async res => {
-      // 若有如寶雅的細項，自動寫入「家用明細_細項」分頁
-      if (recognizedItems.length > 0 && currentTab === 'household') {
-        const detailPayload = {
-          sheetName: '家用明細_細項',
-          items: recognizedItems.map(item => ({
+      // 2. 如果有勾選明細，批次寫入「家用明細_細項」
+      if (hasDetails && currentTab === 'household') {
+        const names = document.querySelectorAll('.item-name');
+        const prices = document.querySelectorAll('.item-price');
+        const qtys = document.querySelectorAll('.item-qty');
+
+        let detailItems = [];
+        for (let i = 0; i < names.length; i++) {
+          const p = Number(prices[i].value) || 0;
+          const q = Number(qtys[i].value) || 0;
+          detailItems.push({
+            invoiceNo: invoiceNo || payload.date + '-' + payload.store, // 若無填發票號，自動用日期+商家作為單號
             date: payload.date,
             store: payload.store,
-            itemName: item.itemName,
-            price: item.price,
-            qty: item.qty,
-            total: item.total,
-            note: 'AI 拍照自動拆分'
-          }))
+            itemName: names[i].value,
+            price: p,
+            qty: q,
+            total: p * q,
+            note: '手動填寫明細'
+          });
+        }
+
+        const detailPayload = {
+          sheetName: '家用明細_細項',
+          items: detailItems
         };
         await fetch(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify(detailPayload) });
       }
@@ -235,8 +269,10 @@
       alert('✅ 成功記錄至試算表！');
       document.getElementById('amount').value = '';
       document.getElementById('note').value = '';
-      recognizedItems = [];
-      document.getElementById('ocrStatus').innerText = '點擊拍照，自動辨識日期、商家、金額與寶雅多樣明細';
+      document.getElementById('invoiceNo').value = '';
+      document.getElementById('itemList').innerHTML = '';
+      document.getElementById('toggleDetail').checked = false;
+      document.getElementById('detailSection').style.display = 'none';
     })
     .catch(err => alert('❌ 連線錯誤：' + err))
     .finally(() => {
