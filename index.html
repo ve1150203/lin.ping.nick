@@ -19,6 +19,7 @@
     .btn-query { width: 100%; padding: 12px; background: #0d6efd; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-bottom: 15px; }
     .dynamic-field { display: none; }
     
+    /* 明細手動新增樣式 */
     .detail-section { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 10px; padding: 16px; margin-top: 15px; display: none; }
     .item-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
     .item-row input { padding: 8px; font-size: 14px; }
@@ -27,16 +28,23 @@
     .checkbox-group { display: flex; align-items: center; gap: 8px; font-weight: bold; color: #0d6efd; margin-top: 10px; cursor: pointer; }
     .checkbox-group input { width: auto; }
 
-    /* 查詢表格樣式 */
-    .table-wrapper { overflow-x: auto; margin-top: 10px; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    th, td { padding: 10px; border: 1px solid #dee2e6; text-align: left; }
-    th { background-color: #e9ecef; }
-    tr:nth-child(even) { background-color: #f8f9fa; }
+    /* 歷史帳目卡片與折疊明細樣式 */
+    .record-card { background: #ffffff; border: 1px solid #e9ecef; border-radius: 10px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
+    .record-header { display: flex; justify-content: space-between; align-items: center; }
+    .record-title { font-size: 16px; font-weight: bold; color: #1a252c; }
+    .record-sub { font-size: 13px; color: #6c757d; margin-top: 4px; }
+    .record-amount { font-size: 18px; font-weight: bold; color: #dc3545; }
+    .btn-toggle-detail { background: #e7f5ff; color: #1971c2; border: 1px solid #a5d8ff; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; margin-top: 10px; }
+    
+    .detail-box { display: none; background: #f8f9fa; border-radius: 8px; padding: 10px; margin-top: 10px; border-left: 4px solid #0d6efd; }
+    .detail-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+    .detail-table th, .detail-table td { padding: 6px; border-bottom: 1px solid #dee2e6; text-align: left; }
+    .detail-table th { background: #e9ecef; }
   </style>
 </head>
 <body>
 
+<!-- 1. 新增記帳區塊 -->
 <div class="card">
   <h2>📖 記帳與新增資料</h2>
   
@@ -54,7 +62,7 @@
 
     <div class="form-group" id="invoiceGroup">
       <label for="invoiceNo">發票號碼 / 銷貨單號 (選填)：</label>
-      <input type="text" id="invoiceNo" placeholder="例如：AB12345678">
+      <input type="text" id="invoiceNo" placeholder="例如：AB12345678 (方便關聯明細)">
     </div>
 
     <div class="form-group">
@@ -102,29 +110,39 @@
   </form>
 </div>
 
-<!-- 🔍 歷史帳單讀取/查詢區塊 -->
+<!-- 2. 🔍 歷史帳目查詢區塊（折疊明細） -->
 <div class="card">
   <h3>🔍 查詢歷史帳目</h3>
+  
   <div class="form-group">
-    <label for="querySheet">選擇查詢分頁：</label>
+    <label for="querySheet">選擇查詢類別：</label>
     <select id="querySheet">
-      <option value="家用支出_主表">家用支出主表</option>
-      <option value="家用明細_細項">家用明細細項</option>
+      <option value="家用支出_主表">家用支出</option>
       <option value="個人支出">個人支出</option>
       <option value="年度稅金與固定規費">年度稅金與固定規費</option>
     </select>
   </div>
-  <button type="button" class="btn-query" onclick="loadData()">載入試算表資料</button>
 
-  <div class="table-wrapper">
-    <table id="dataTable">
-      <thead><tr id="tableHead"><th>點擊上方按鈕載入資料</th></tr></thead>
-      <tbody id="tableBody"></tbody>
-    </table>
+  <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+    <div style="flex: 1;">
+      <label for="startDate">開始日期：</label>
+      <input type="date" id="startDate">
+    </div>
+    <div style="flex: 1;">
+      <label for="endDate">結束日期：</label>
+      <input type="date" id="endDate">
+    </div>
+  </div>
+
+  <button type="button" class="btn-query" onclick="loadData()">查詢歷史帳目</button>
+
+  <div id="recordList" style="margin-top: 15px;">
+    <div style="text-align:center; color:#666;">請選擇日期後點擊查詢</div>
   </div>
 </div>
 
 <script>
+  // 已自動帶入您部署成功的 Google Apps Script Web App URL
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwmJRExkmcBwZIW_l4EovEdVNhipMFPWGCLzEeyshuV1uR3ObZhDLdEozrsCtfERry4/exec";
 
   let currentTab = 'household';
@@ -212,37 +230,88 @@
     }
   }
 
-  // 📖 讀取與叫出已記錄資料 (doGet 串接)
+  // 📖 載入並產生「主表 + 可展開明細」卡片
   function loadData() {
     const targetSheet = document.getElementById('querySheet').value;
-    const headRow = document.getElementById('tableHead');
-    const bodyContainer = document.getElementById('tableBody');
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    const container = document.getElementById('recordList');
 
-    headRow.innerHTML = '<th>載入中...</th>';
-    bodyContainer.innerHTML = '';
+    container.innerHTML = '<div style="text-align:center;">⏳ 資料載入中...</div>';
 
-    fetch(`${GAS_WEB_APP_URL}?sheetName=${encodeURIComponent(targetSheet)}`)
+    let url = `${GAS_WEB_APP_URL}?sheetName=${encodeURIComponent(targetSheet)}`;
+    if (startDate) url += `&startDate=${startDate}`;
+    if (endDate) url += `&endDate=${endDate}`;
+
+    fetch(url)
       .then(res => res.json())
       .then(res => {
         if (res.status === 'success') {
           if (res.data.length === 0) {
-            headRow.innerHTML = '<th>無資料</th>';
+            container.innerHTML = '<div style="text-align:center; color:#666;">該日期區間無記帳紀錄。</div>';
             return;
           }
 
-          // 動態產生欄位表頭
-          const headers = Object.keys(res.data[0]);
-          headRow.innerHTML = headers.map(h => `<th>${h}</th>`).join('');
+          let html = '';
+          res.data.forEach((item, index) => {
+            const date = item["日期"] || item["應繳日期"] || "";
+            const title = item["消費項目/商家"] || item["消費項目/類別"] || item["稅別/項目"] || item["個人消費項目"] || "未命名";
+            const amount = item["總金額"] || item["金額"] || 0;
+            const payType = item["支付方式"] || "";
+            const payName = item["支付名稱/帳戶"] || item["刷卡銀行"] || item["繳納帳戶/信用卡"] || "";
+            const hasDetails = item.details && item.details.length > 0;
+            const detailId = `detail-${index}`;
 
-          // 動態產生資料內容
-          bodyContainer.innerHTML = res.data.map(row => {
-            return '<tr>' + headers.map(h => `<td>${row[h] !== undefined ? row[h] : ''}</td>`).join('') + '</tr>';
-          }).join('');
+            html += `
+              <div class="record-card">
+                <div class="record-header">
+                  <div>
+                    <div class="record-title">${title}</div>
+                    <div class="record-sub">📅 ${date} ｜ 💳 ${payType} (${payName})</div>
+                  </div>
+                  <div class="record-amount">$${Number(amount).toLocaleString()}</div>
+                </div>
+            `;
+
+            if (hasDetails) {
+              html += `
+                <button type="button" class="btn-toggle-detail" onclick="toggleDetailBox('${detailId}')">
+                  🛒 查看商品明細 (${item.details.length} 項) ▼
+                </button>
+                <div class="detail-box" id="${detailId}">
+                  <table class="detail-table">
+                    <thead>
+                      <tr><th>品名</th><th>單價</th><th>數量</th><th>小計</th></tr>
+                    </thead>
+                    <tbody>
+                      ${item.details.map(d => `
+                        <tr>
+                          <td>${d["品名/項目"] || d["品名"] || ""}</td>
+                          <td>$${d["單價"] || 0}</td>
+                          <td>${d["數量"] || 1}</td>
+                          <td>$${d["小計"] || 0}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              `;
+            }
+
+            html += `</div>`;
+          });
+
+          container.innerHTML = html;
         } else {
           alert('❌ 讀取失敗：' + res.message);
         }
       })
       .catch(err => alert('❌ 連線錯誤：' + err));
+  }
+
+  function toggleDetailBox(id) {
+    const box = document.getElementById(id);
+    box.style.display = (box.style.display === 'block') ? 'none' : 'block';
   }
 
   // 表單寫入 (POST)
@@ -321,7 +390,7 @@
       document.getElementById('toggleDetail').checked = false;
       document.getElementById('detailSection').style.display = 'none';
       
-      // 自動重新整理下方讀取列表
+      // 新增成功後，自動更新下方查詢列表
       loadData();
     })
     .catch(err => alert('❌ 連線錯誤：' + err))
