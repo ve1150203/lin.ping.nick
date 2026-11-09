@@ -333,9 +333,23 @@
             let card = document.createElement('div');
             card.className = 'expense-card';
 
-            // 完美相容各種欄位名稱，避免金額變成 $0
-            let storeName = item['消費項目/商家'] || item['消費項目'] || item['項目'] || '消費項目';
-            let amount = Number(item['總金額'] || item['金額'] || item['金額(NT$)'] || 0);
+            // 【終極防呆】：不管試算表欄位叫什麼名字，這裡會自動智慧尋找正確的值！
+            let storeName = item['消費項目/商家'] || item['消費項目'] || item['項目'] || item['店家'] || item['品名'] || '未知項目';
+            
+            // 智慧抓取金額（排除日期或非數字的干擾）
+            let rawAmount = item['總金額'] !== undefined ? item['總金額'] : (item['金額'] !== undefined ? item['金額'] : item['金額(NT$)']);
+            let amount = parseFloat(rawAmount) || 0;
+            if (amount === 0) {
+                // 如果直接抓不到，嘗試從物件的所有屬性裡找出數值
+                for (let key in item) {
+                    let val = parseFloat(item[key]);
+                    if (!isNaN(val) && val > 0 && key !== '數量' && key !== '單價') {
+                        amount = val;
+                        break;
+                    }
+                }
+            }
+
             let dateStr = item['日期'] || item['應繳日期'] || '';
             let payment = item['支付方式'] || '現金';
             let bank = item['刷卡銀行'] || payment;
@@ -344,13 +358,13 @@
             if (item.showDetailBtn && item.details && item.details.length > 0) {
                 let detailRows = '';
                 item.details.forEach(d => {
-                    let unitPrice = Number(d['單價']) || 0;
+                    let unitPrice = Number(d['單價'] || d['價格']) || 0;
                     let qty = Number(d['數量']) || 1;
                     let subtotal = unitPrice * qty;
 
                     detailRows += `
                         <tr>
-                            <td>${d['品名'] || ''}</td>
+                            <td>${d['品名'] || d['商品'] || ''}</td>
                             <td>$${unitPrice.toLocaleString()}</td>
                             <td>${qty}</td>
                             <td>$${subtotal.toLocaleString()}</td>
