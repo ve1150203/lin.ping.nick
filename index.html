@@ -333,7 +333,7 @@
             let card = document.createElement('div');
             card.className = 'expense-card';
 
-            // 【完全統一標準】：消費項目/商家永遠作為卡片大標題
+            // 【完全一致的消費項目/商家抓取邏輯】：對應試算表 B 欄或包含商家/項目的欄位
             let storeName = "";
             const keys = Object.keys(item);
             
@@ -420,6 +420,7 @@
                 `;
             }
 
+            // 統一渲染卡片格式：大標題為消費項目/商家，金額在右側，下方顯示日期與支付方式
             card.innerHTML = `
                 <div class="card-header">
                     <span class="store-name">${storeName}</span>
