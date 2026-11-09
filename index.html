@@ -7,8 +7,8 @@
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 16px; background-color: #f4f6f8; color: #333; }
-    .card { background: white; padding: 24px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-width: 550px; margin: 0 auto; }
-    h2 { margin-top: 0; font-size: 20px; text-align: center; color: #1a252c; }
+    .card { background: white; padding: 24px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-width: 600px; margin: 0 auto 20px auto; }
+    h2, h3 { margin-top: 0; text-align: center; color: #1a252c; }
     .nav-tabs { display: flex; gap: 6px; margin-bottom: 20px; border-bottom: 2px solid #e9ecef; padding-bottom: 8px; }
     .tab-btn { flex: 1; padding: 10px 4px; border: none; background: #e9ecef; color: #495057; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; }
     .tab-btn.active { background: #0d6efd; color: white; }
@@ -16,9 +16,9 @@
     label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #495057; }
     input, select { width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; font-size: 15px; outline: none; }
     .btn-submit { width: 100%; padding: 14px; background: #198754; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+    .btn-query { width: 100%; padding: 12px; background: #0d6efd; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-bottom: 15px; }
     .dynamic-field { display: none; }
     
-    /* 明細專用樣式 */
     .detail-section { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 10px; padding: 16px; margin-top: 15px; display: none; }
     .item-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
     .item-row input { padding: 8px; font-size: 14px; }
@@ -26,12 +26,19 @@
     .btn-del { background: #dc3545; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 13px; }
     .checkbox-group { display: flex; align-items: center; gap: 8px; font-weight: bold; color: #0d6efd; margin-top: 10px; cursor: pointer; }
     .checkbox-group input { width: auto; }
+
+    /* 查詢表格樣式 */
+    .table-wrapper { overflow-x: auto; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 10px; border: 1px solid #dee2e6; text-align: left; }
+    th { background-color: #e9ecef; }
+    tr:nth-child(even) { background-color: #f8f9fa; }
   </style>
 </head>
 <body>
 
 <div class="card">
-  <h2>📖 家庭與個人記帳本</h2>
+  <h2>📖 記帳與新增資料</h2>
   
   <div class="nav-tabs">
     <button type="button" class="tab-btn active" onclick="switchTab('household')">家用支出</button>
@@ -40,16 +47,14 @@
   </div>
 
   <form id="expenseForm">
-    <!-- 消費日期 -->
     <div class="form-group">
       <label for="date">消費日期：</label>
       <input type="date" id="date" required>
     </div>
 
-    <!-- 發票號碼 / 關聯單號 (方便核對明細) -->
     <div class="form-group" id="invoiceGroup">
       <label for="invoiceNo">發票號碼 / 銷貨單號 (選填)：</label>
-      <input type="text" id="invoiceNo" placeholder="例如：AB12345678 (方便核對同一筆明細)">
+      <input type="text" id="invoiceNo" placeholder="例如：AB12345678">
     </div>
 
     <div class="form-group">
@@ -81,18 +86,14 @@
       <input type="text" id="note" placeholder="可選填（如：採買日用品）">
     </div>
 
-    <!-- 是否展開輸入明細 (僅在家用支出顯示) -->
     <div id="hasDetailOption">
       <label class="checkbox-group">
         <input type="checkbox" id="toggleDetail" onchange="toggleDetailSection()"> 🛒 是否輸入商品詳細明細 (如寶雅多樣物品)
       </label>
 
-      <!-- 動態明細輸入區 -->
       <div class="detail-section" id="detailSection">
         <label>商品明細列表：</label>
-        <div id="itemList">
-          <!-- 預設第一筆 -->
-        </div>
+        <div id="itemList"></div>
         <button type="button" class="btn-add" onclick="addItemRow()">+ 新增一筆商品</button>
       </div>
     </div>
@@ -101,11 +102,32 @@
   </form>
 </div>
 
+<!-- 🔍 歷史帳單讀取/查詢區塊 -->
+<div class="card">
+  <h3>🔍 查詢歷史帳目</h3>
+  <div class="form-group">
+    <label for="querySheet">選擇查詢分頁：</label>
+    <select id="querySheet">
+      <option value="家用支出_主表">家用支出主表</option>
+      <option value="家用明細_細項">家用明細細項</option>
+      <option value="個人支出">個人支出</option>
+      <option value="年度稅金與固定規費">年度稅金與固定規費</option>
+    </select>
+  </div>
+  <button type="button" class="btn-query" onclick="loadData()">載入試算表資料</button>
+
+  <div class="table-wrapper">
+    <table id="dataTable">
+      <thead><tr id="tableHead"><th>點擊上方按鈕載入資料</th></tr></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
+
 <script>
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwmJRExkmcBwZIW_l4EovEdVNhipMFPWGCLzEeyshuV1uR3ObZhDLdEozrsCtfERry4/exec";
 
   let currentTab = 'household';
-
   document.getElementById('date').valueAsDate = new Date();
 
   function switchTab(tab) {
@@ -152,23 +174,21 @@
     }
   }
 
-  // 切換明細區域開關
   function toggleDetailSection() {
     const isChecked = document.getElementById('toggleDetail').checked;
     const section = document.getElementById('detailSection');
     section.style.display = isChecked ? 'block' : 'none';
     if (isChecked && document.getElementById('itemList').children.length === 0) {
-      addItemRow(); // 自動帶出第一行
+      addItemRow();
     }
   }
 
-  // 動態增加明細行
   function addItemRow() {
     const container = document.getElementById('itemList');
     const row = document.createElement('div');
     row.className = 'item-row';
     row.innerHTML = `
-      <input type="text" placeholder="品名 (例:衛生紙)" class="item-name" style="flex:2;" required>
+      <input type="text" placeholder="品名" class="item-name" style="flex:2;" required>
       <input type="number" placeholder="單價" class="item-price" style="flex:1;" oninput="calcTotal()" required>
       <input type="number" placeholder="數量" class="item-qty" value="1" style="flex:1;" oninput="calcTotal()" required>
       <button type="button" class="btn-del" onclick="this.parentElement.remove(); calcTotal();">✕</button>
@@ -176,7 +196,6 @@
     container.appendChild(row);
   }
 
-  // 自動加總明細金額並填入總金額欄位
   function calcTotal() {
     let total = 0;
     const names = document.querySelectorAll('.item-name');
@@ -193,7 +212,40 @@
     }
   }
 
-  // 表單送出
+  // 📖 讀取與叫出已記錄資料 (doGet 串接)
+  function loadData() {
+    const targetSheet = document.getElementById('querySheet').value;
+    const headRow = document.getElementById('tableHead');
+    const bodyContainer = document.getElementById('tableBody');
+
+    headRow.innerHTML = '<th>載入中...</th>';
+    bodyContainer.innerHTML = '';
+
+    fetch(`${GAS_WEB_APP_URL}?sheetName=${encodeURIComponent(targetSheet)}`)
+      .then(res => res.json())
+      .then(res => {
+        if (res.status === 'success') {
+          if (res.data.length === 0) {
+            headRow.innerHTML = '<th>無資料</th>';
+            return;
+          }
+
+          // 動態產生欄位表頭
+          const headers = Object.keys(res.data[0]);
+          headRow.innerHTML = headers.map(h => `<th>${h}</th>`).join('');
+
+          // 動態產生資料內容
+          bodyContainer.innerHTML = res.data.map(row => {
+            return '<tr>' + headers.map(h => `<td>${row[h] !== undefined ? row[h] : ''}</td>`).join('') + '</tr>';
+          }).join('');
+        } else {
+          alert('❌ 讀取失敗：' + res.message);
+        }
+      })
+      .catch(err => alert('❌ 連線錯誤：' + err));
+  }
+
+  // 表單寫入 (POST)
   document.getElementById('expenseForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const submitBtn = document.getElementById('submitBtn');
@@ -230,14 +282,12 @@
 
     payload.sheetName = targetSheet;
 
-    // 1. 先寫入主表
     fetch(GAS_WEB_APP_URL, {
       method: 'POST',
       body: JSON.stringify(payload)
     })
     .then(res => res.json())
     .then(async res => {
-      // 2. 如果有勾選明細，批次寫入「家用明細_細項」
       if (hasDetails && currentTab === 'household') {
         const names = document.querySelectorAll('.item-name');
         const prices = document.querySelectorAll('.item-price');
@@ -248,7 +298,7 @@
           const p = Number(prices[i].value) || 0;
           const q = Number(qtys[i].value) || 0;
           detailItems.push({
-            invoiceNo: invoiceNo || payload.date + '-' + payload.store, // 若無填發票號，自動用日期+商家作為單號
+            invoiceNo: invoiceNo || payload.date + '-' + payload.store,
             date: payload.date,
             store: payload.store,
             itemName: names[i].value,
@@ -259,10 +309,7 @@
           });
         }
 
-        const detailPayload = {
-          sheetName: '家用明細_細項',
-          items: detailItems
-        };
+        const detailPayload = { sheetName: '家用明細_細項', items: detailItems };
         await fetch(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify(detailPayload) });
       }
 
@@ -273,6 +320,9 @@
       document.getElementById('itemList').innerHTML = '';
       document.getElementById('toggleDetail').checked = false;
       document.getElementById('detailSection').style.display = 'none';
+      
+      // 自動重新整理下方讀取列表
+      loadData();
     })
     .catch(err => alert('❌ 連線錯誤：' + err))
     .finally(() => {
