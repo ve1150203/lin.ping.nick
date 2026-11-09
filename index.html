@@ -333,11 +333,10 @@
             let card = document.createElement('div');
             card.className = 'expense-card';
 
-            // 【主標題精準對應】：強制優先抓取試算表 B 欄（即消費項目/商家），絕對不顯示日期或現金
+            // 【完全統一標準】：消費項目/商家永遠作為卡片大標題
             let storeName = "";
             const keys = Object.keys(item);
             
-            // 優先透過表頭關鍵字尋找
             for (let key in item) {
                 let lowerKey = key.toLowerCase();
                 if ((lowerKey.includes('項目') || lowerKey.includes('商家') || lowerKey.includes('消費') || lowerKey.includes('店家') || lowerKey.includes('品名')) && !lowerKey.includes('支付')) {
@@ -347,7 +346,6 @@
                     }
                 }
             }
-            // 若表頭對不上，直接抓取 B 欄（索引 1）
             if (!storeName && keys.length >= 2) {
                 let colVal = item[keys[1]];
                 if (colVal && typeof colVal === 'string' && colVal.trim() !== "") {
@@ -422,7 +420,6 @@
                 `;
             }
 
-            // 【UI 調整】：主標題顯示消費項目/商家，小字資訊顯示日期與支付方式
             card.innerHTML = `
                 <div class="card-header">
                     <span class="store-name">${storeName}</span>
