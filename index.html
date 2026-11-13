@@ -1,450 +1,318 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家庭與個人記帳本</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f8f9fa; color: #333; margin: 0; padding: 20px; }
-        .container { max-width: 650px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        h2 { color: #2c3e50; border-bottom: 2px solid #eaeaea; padding-bottom: 8px; margin-top: 0; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
-        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
-        
-        /* 分類 Tab 按鈕樣式 */
-        .tab-container { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab-btn { flex: 1; padding: 10px; border: 1px solid #ccc; background: #e9ecef; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; text-align: center; color: #495057; }
-        .tab-btn.active { background-color: #007bff; color: white; border-color: #007bff; }
-
-        .btn-primary { background-color: #007bff; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; }
-        .btn-primary:hover { background-color: #0056b3; }
-        .btn-success { background-color: #28a745; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; }
-        .btn-success:hover { background-color: #218838; }
-        
-        /* 明細動態輸入區塊樣式 */
-        #detailSection { background: #f1f3f5; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; }
-        .detail-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
-        .detail-row input { flex: 2; }
-        .detail-row input.price-qty { flex: 1; }
-        .del-btn { background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; width: auto; }
-        .add-row-btn { background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-top: 5px; font-size: 14px; width: auto; }
-
-        /* 歷史帳目卡片 */
-        .expense-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
-        .card-header { display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: bold; margin-bottom: 8px; }
-        .store-name { color: #2c3e50; }
-        .amount { color: #d9534f; font-size: 20px; }
-        .card-info { font-size: 14px; color: #666; margin-bottom: 10px; }
-        
-        .toggle-detail-btn { background-color: #e9ecef; color: #495057; border: 1px solid #ced4da; padding: 8px 12px; width: auto; font-size: 14px; border-radius: 4px; cursor: pointer; margin-top: 5px; }
-        .detail-table-container { margin-top: 10px; overflow-x: auto; border-top: 1px dashed #dee2e6; padding-top: 10px; }
-        .detail-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        .detail-table th, .detail-table td { border: 1px solid #dee2e6; padding: 8px; text-align: left; }
-        .detail-table th { background-color: #f1f3f5; color: #495057; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>家庭與個人記帳本</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    h2 {
+      margin-top: 0;
+      font-size: 1.35rem;
+      color: #2c3e50;
+      border-bottom: 2px solid #edf2f7;
+      padding-bottom: 8px;
+    }
+    .category-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .category-btn {
+      flex: 1;
+      padding: 10px 4px;
+      border: 1px solid #cbd5e0;
+      background-color: #edf2f7;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #4a5568;
+      transition: all 0.2s;
+    }
+    .category-btn.active {
+      background-color: #3182ce;
+      color: #fff;
+      border-color: #3182ce;
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+    }
+    .form-control {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 0.95rem;
+    }
+    .btn-submit, .btn-query {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .btn-submit {
+      background-color: #38a169;
+      color: white;
+      margin-top: 10px;
+    }
+    .btn-submit:hover { background-color: #2f855a; }
+    .btn-query {
+      background-color: #3182ce;
+      color: white;
+      margin-top: 8px;
+    }
+    .btn-query:hover { background-color: #2b6cb0; }
+    
+    /* 歷史帳目卡片樣式 */
+    .account-card {
+      background: #faf5ff;
+      border-left: 4px solid #805ad5;
+      border-radius: 6px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1rem;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .card-amount {
+      color: #d69e2e;
+      font-size: 1.1rem;
+    }
+    .card-meta {
+      font-size: 0.85rem;
+      color: #718096;
+    }
+    .card-note {
+      font-size: 0.88rem;
+      color: #4a5568;
+      background-color: rgba(255,255,255,0.7);
+      padding: 6px 8px;
+      border-radius: 4px;
+      margin-top: 6px;
+      border: 1px dashed #e2e8f0;
+    }
+  </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>📖 記帳與新增資料</h2>
+  <h2>📖 記帳與新增資料</h2>
+  
+  <!-- 分類按鈕 -->
+  <div class="category-group">
+    <button class="category-btn active" onclick="setCategory('家用支出', this)">家用支出</button>
+    <button class="category-btn" onclick="setCategory('個人支出', this)">個人支出</button>
+    <button class="category-btn" onclick="setCategory('稅金與規費', this)">稅金與規費</button>
+  </div>
 
-    <!-- 分類切換 Tab -->
-    <div class="tab-container">
-        <div class="tab-btn active" id="tabHousehold" onclick="switchCategory('家用支出_主表')">家用支出</div>
-        <div class="tab-btn" id="tabPersonal" onclick="switchCategory('個人支出')">個人支出</div>
-        <div class="tab-btn" id="tabTax" onclick="switchCategory('年度稅金與固定規費')">稅金與規費</div>
-    </div>
+  <form id="expenseForm" onsubmit="handleFormSubmit(event)">
+    <input type="hidden" id="category" value="家用支出">
 
     <div class="form-group">
-        <label>消費日期：</label>
-        <input type="date" id="inputDate">
-    </div>
-    
-    <!-- 發票號碼 -->
-    <div class="form-group" id="invoiceGroup">
-        <label>發票號碼 / 銷貨單號 (選填)：</label>
-        <input type="text" id="inputInvoice" placeholder="例如：AB12345678 (方便關聯明細)">
+      <label for="date">消費日期：</label>
+      <input type="date" id="date" class="form-control" required>
     </div>
 
     <div class="form-group">
-        <label id="storeLabel">消費項目 / 商家：</label>
-        <input type="text" id="inputStore" placeholder="例如：寶雅、全聯、午餐便當">
-    </div>
-    <div class="form-group">
-        <label>總金額 (NT$)：</label>
-        <input type="number" id="inputAmount" value="0">
-    </div>
-    <div class="form-group">
-        <label>支付方式：</label>
-        <select id="inputPaymentType">
-            <option value="現金">現金</option>
-            <option value="刷卡">刷卡</option>
-            <option value="銀行轉帳 / 帳戶">銀行轉帳 / 帳戶</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label>備註：</label>
-        <input type="text" id="inputNote" placeholder="可選填（如：採買日用品）">
-    </div>
-    
-    <!-- 是否輸入商品明細 -->
-    <div class="form-group" id="detailCheckGroup">
-        <label style="font-weight: normal; cursor: pointer;">
-            <input type="checkbox" id="hasDetailsCheck" onchange="toggleDetailInput(this)" style="width: auto; margin-right: 5px;"> 
-            🛒 是否輸入商品詳細明細 (如多樣物品)
-        </label>
+      <label for="invoiceNo">發票號碼 / 銷貨單號 (選填)：</label>
+      <input type="text" id="invoiceNo" class="form-control" placeholder="例如：AB12345678">
     </div>
 
-    <!-- 動態輸入明細的區塊 -->
-    <div id="detailSection">
-        <label style="margin-bottom: 8px; color: #2c3e50;">請輸入商品明細清單：</label>
-        <div id="detailRowsContainer">
-            <div class="detail-row">
-                <input type="text" placeholder="品名" class="d-name">
-                <input type="number" placeholder="單價" class="d-price price-qty" oninput="calcTotal()">
-                <input type="number" placeholder="數量" class="d-qty price-qty" value="1" oninput="calcTotal()">
-                <button type="button" class="del-btn" onclick="removeRow(this)">刪除</button>
-            </div>
-        </div>
-        <button type="button" class="add-row-btn" onclick="addDetailRow()">＋ 新增一項商品</button>
-    </div>
-
-    <button class="btn-success" onclick="submitData()" style="margin-top: 15px;">儲存到試算表</button>
-
-    <hr style="margin: 30px 0; border:0; border-top:1px solid #eee;">
-
-    <h2>🔍 查詢歷史帳目</h2>
     <div class="form-group">
-        <label>選擇查詢類別：</label>
-        <select id="queryCategory" onchange="syncQueryCategory(this)">
-            <option value="家用支出_主表">家用支出</option>
-            <option value="個人支出">個人支出</option>
-            <option value="年度稅金與固定規費">年度稅金與固定規費</option>
-        </select>
+      <label for="item">消費項目 / 商家：</label>
+      <input type="text" id="item" class="form-control" placeholder="例如：寶雅、全聯、午餐便當" required>
     </div>
-    <div class="form-group">
-        <label>開始日期：</label>
-        <input type="date" id="startDate">
-    </div>
-    <div class="form-group">
-        <label>結束日期：</label>
-        <input type="date" id="endDate">
-    </div>
-    <button class="btn-primary" onclick="fetchHistory()">查詢歷史帳目</button>
 
-    <div id="resultContainer" style="margin-top: 20px;"></div>
+    <div class="form-group">
+      <label for="amount">總金額 (NT$)：</label>
+      <input type="number" id="amount" class="form-control" min="0" value="0" required>
+    </div>
+
+    <div class="form-group">
+      <label for="paymentMethod">支付方式：</label>
+      <select id="paymentMethod" class="form-control" onchange="toggleBankInput()">
+        <option value="現金">現金</option>
+        <option value="刷卡">刷卡</option>
+        <option value="銀行轉帳 / 帳戶">銀行轉帳 / 帳戶</option>
+      </select>
+    </div>
+
+    <!-- 動態顯示的刷卡銀行輸入框 -->
+    <div class="form-group" id="bankGroup" style="display: none;">
+      <label for="bankName">刷卡銀行名稱：</label>
+      <input type="text" id="bankName" class="form-control" placeholder="例如：玉山銀行、國泰世華">
+    </div>
+
+    <div class="form-group">
+      <label for="note">備註：</label>
+      <input type="text" id="note" class="form-control" placeholder="可選填（如：採買日用品）">
+    </div>
+
+    <button type="submit" class="btn-submit">儲存到試算表</button>
+  </form>
+
+  <hr style="margin: 24px 0; border: none; border-top: 1px solid #edf2f7;">
+
+  <h2>🔍 查詢歷史帳目</h2>
+  <div class="form-group">
+    <label for="queryCategory">選擇查詢類別：</label>
+    <select id="queryCategory" class="form-control">
+      <option value="家用支出">家用支出</option>
+      <option value="個人支出">個人支出</option>
+      <option value="年度稅金與固定規費">年度稅金與固定規費</option>
+    </select>
+  </div>
+
+  <div style="display: flex; gap: 10px;">
+    <div class="form-group" style="flex: 1;">
+      <label for="startDate">開始日期：</label>
+      <input type="date" id="startDate" class="form-control">
+    </div>
+    <div class="form-group" style="flex: 1;">
+      <label for="endDate">結束日期：</label>
+      <input type="date" id="endDate" class="form-control">
+    </div>
+  </div>
+
+  <button type="button" class="btn-query" onclick="fetchHistory()">查詢歷史帳目</button>
+
+  <div id="historyList" style="margin-top: 16px;">
+    <!-- 歷史卡片會渲染在這裡 -->
+  </div>
 </div>
 
 <script>
+  // 初始化日期欄位為今天
+  document.addEventListener('DOMContentLoaded', () => {
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('inputDate').value = today;
-    document.getElementById('startDate').value = "2026-11-07";
-    document.getElementById('endDate').value = "2026-11-09";
+    document.getElementById('date').value = today;
+    document.getElementById('startDate').value = today;
+    document.getElementById('endDate').value = today;
+  });
 
-    const API_URL = "https://script.google.com/macros/s/AKfycbwmJRExkmcBwZIW_l4EovEdVNhipMFPWGCLzEeyshuV1uR3ObZhDLdEozrsCtfERry4/exec";
+  // 切換類別按鈕
+  function setCategory(cat, btn) {
+    document.getElementById('category').value = cat;
+    document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
 
-    let currentSheet = "家用支出_主表";
+  // 控制發卡銀行輸入框顯示/隱藏
+  function toggleBankInput() {
+    const method = document.getElementById('paymentMethod').value;
+    const bankGroup = document.getElementById('bankGroup');
+    if (method === '刷卡') {
+      bankGroup.style.display = 'block';
+    } else {
+      bankGroup.style.display = 'none';
+      document.getElementById('bankName').value = '';
+    }
+  }
 
-    function switchCategory(sheetName) {
-        currentSheet = sheetName;
-        document.getElementById('queryCategory').value = sheetName;
+  // 表單送出處理
+  function handleFormSubmit(e) {
+    e.preventDefault();
 
-        document.getElementById('tabHousehold').classList.remove('active');
-        document.getElementById('tabPersonal').classList.remove('active');
-        document.getElementById('tabTax').classList.remove('active');
-
-        if (sheetName === "家用支出_主表") {
-            document.getElementById('tabHousehold').classList.add('active');
-            document.getElementById('invoiceGroup').style.display = 'block';
-            document.getElementById('detailCheckGroup').style.display = 'block';
-            document.getElementById('storeLabel').innerText = "消費項目 / 商家：";
-        } else if (sheetName === "個人支出") {
-            document.getElementById('tabPersonal').classList.add('active');
-            document.getElementById('invoiceGroup').style.display = 'block';
-            document.getElementById('detailCheckGroup').style.display = 'block';
-            document.getElementById('storeLabel').innerText = "消費項目 / 商家：";
-        } else {
-            document.getElementById('tabTax').classList.add('active');
-            document.getElementById('invoiceGroup').style.display = 'none';
-            document.getElementById('detailCheckGroup').style.display = 'none';
-            document.getElementById('detailSection').style.display = 'none';
-            document.getElementById('storeLabel').innerText = "項目名稱：";
-        }
+    const rawMethod = document.getElementById('paymentMethod').value;
+    const bankName = document.getElementById('bankName').value.trim();
+    
+    // 組合支付方式文字（如：刷卡 (玉山銀行)）
+    let finalPayment = rawMethod;
+    if (rawMethod === '刷卡') {
+      finalPayment = bankName ? `刷卡 (${bankName})` : '刷卡 (刷卡)';
+    } else {
+      finalPayment = `${rawMethod} (${rawMethod})`;
     }
 
-    function syncQueryCategory(select) {
-        switchCategory(select.value);
+    const formData = {
+      category: document.getElementById('category').value,
+      date: document.getElementById('date').value,
+      invoiceNo: document.getElementById('invoiceNo').value,
+      item: document.getElementById('item').value,
+      amount: Number(document.getElementById('amount').value),
+      paymentMethod: finalPayment,
+      note: document.getElementById('note').value
+    };
+
+    // 呼叫 Google Apps Script 後端 saveData 函數
+    google.script.run.withSuccessHandler(res => {
+      alert('儲存成功！');
+      document.getElementById('expenseForm').reset();
+      toggleBankInput();
+    }).saveData(formData);
+  }
+
+  // 查詢歷史帳目並渲染 (包含備註處理)
+  function fetchHistory() {
+    const query = {
+      category: document.getElementById('queryCategory').value,
+      startDate: document.getElementById('startDate').value,
+      endDate: document.getElementById('endDate').value
+    };
+
+    google.script.run.withSuccessHandler(renderHistory).getHistoryData(query);
+  }
+
+  // 渲染歷史紀錄列表
+  function renderHistory(records) {
+    const container = document.getElementById('historyList');
+    container.innerHTML = '';
+
+    if (!records || records.length === 0) {
+      container.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">查無歷史帳目</div>';
+      return;
     }
 
-    function toggleDetailInput(checkbox) {
-        const section = document.getElementById('detailSection');
-        section.style.display = checkbox.checked ? 'block' : 'none';
-    }
+    records.forEach(item => {
+      // 判斷是否有備註，有備註才渲染備註區塊
+      const noteHtml = item.note ? `<div class="card-note">📝 備註：${item.note}</div>` : '';
 
-    function addDetailRow() {
-        const container = document.getElementById('detailRowsContainer');
-        const row = document.createElement('div');
-        row.className = 'detail-row';
-        row.innerHTML = `
-            <input type="text" placeholder="品名" class="d-name">
-            <input type="number" placeholder="單價" class="d-price price-qty" oninput="calcTotal()">
-            <input type="number" placeholder="數量" class="d-qty price-qty" value="1" oninput="calcTotal()">
-            <button type="button" class="del-btn" onclick="removeRow(this)">刪除</button>
-        `;
-        container.appendChild(row);
-    }
-
-    function removeRow(btn) {
-        btn.parentElement.remove();
-        calcTotal();
-    }
-
-    function calcTotal() {
-        const rows = document.querySelectorAll('.detail-row');
-        let total = 0;
-        rows.forEach(r => {
-            let price = parseFloat(r.querySelector('.d-price').value) || 0;
-            let qty = parseFloat(r.querySelector('.d-qty').value) || 1;
-            total += price * qty;
-        });
-        if (rows.length > 0) {
-            document.getElementById('inputAmount').value = total;
-        }
-    }
-
-    function submitData() {
-        const data = {
-            sheetName: currentSheet,
-            date: document.getElementById('inputDate').value,
-            invoiceNo: currentSheet !== "年度稅金與固定規費" ? document.getElementById('inputInvoice').value.trim() : "",
-            store: document.getElementById('inputStore').value.trim(),
-            amount: parseFloat(document.getElementById('inputAmount').value) || 0,
-            paymentType: document.getElementById('inputPaymentType').value,
-            paymentName: document.getElementById('inputPaymentType').value,
-            note: document.getElementById('inputNote').value.trim(),
-            hasDetails: currentSheet !== "年度稅金與固定規費" ? document.getElementById('hasDetailsCheck').checked : false
-        };
-
-        if (!data.store) {
-            alert("請填寫項目名稱/商家！");
-            return;
-        }
-
-        let items = [];
-        if (data.hasDetails) {
-            const rows = document.querySelectorAll('.detail-row');
-            rows.forEach(r => {
-                let name = r.querySelector('.d-name').value.trim();
-                let price = parseFloat(r.querySelector('.d-price').value) || 0;
-                let qty = parseFloat(r.querySelector('.d-qty').value) || 1;
-                if (name) {
-                    items.push({
-                        invoiceNo: data.invoiceNo,
-                        date: data.date,
-                        store: data.store,
-                        itemName: name,
-                        category: currentSheet === "個人支出" ? "個人" : "日用",
-                        price: price,
-                        qty: qty,
-                        total: price * qty,
-                        note: "手動填寫明細"
-                    });
-                }
-            });
-        }
-
-        fetch(API_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        })
-        .then(() => {
-            if (data.hasDetails && items.length > 0) {
-                return fetch(API_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        sheetName: "家用明細_細項",
-                        items: items
-                    })
-                });
-            }
-        })
-        .then(() => {
-            alert("成功儲存到試算表！");
-            document.getElementById('inputInvoice').value = '';
-            document.getElementById('inputStore').value = '';
-            document.getElementById('inputAmount').value = '0';
-            document.getElementById('inputNote').value = '';
-            if (currentSheet !== "年度稅金與固定規費") {
-                document.getElementById('hasDetailsCheck').checked = false;
-                document.getElementById('detailSection').style.display = 'none';
-                document.getElementById('detailRowsContainer').innerHTML = `
-                    <div class="detail-row">
-                        <input type="text" placeholder="品名" class="d-name">
-                        <input type="number" placeholder="單價" class="d-price price-qty" oninput="calcTotal()">
-                        <input type="number" placeholder="數量" class="d-qty price-qty" value="1" oninput="calcTotal()">
-                        <button type="button" class="del-btn" onclick="removeRow(this)">刪除</button>
-                    </div>
-                `;
-            }
-        })
-        .catch(err => {
-            alert("儲存失敗：" + err.toString());
-        });
-    }
-
-    function fetchHistory() {
-        const category = document.getElementById('queryCategory').value;
-        const startDate = document.getElementById('startDate').value;
-        const endDate = document.getElementById('endDate').value;
-        const container = document.getElementById('resultContainer');
-        
-        container.innerHTML = "<p style='text-align:center; color:#666;'>資料載入中...</p>";
-        const url = `${API_URL}?sheetName=${encodeURIComponent(category)}&startDate=${startDate}&endDate=${endDate}`;
-
-        fetch(url)
-            .then(res => res.json())
-            .then(res => {
-                if (res.status === "success") {
-                    renderResults(res.data);
-                } else {
-                    container.innerHTML = `<p style="color:red;">錯誤：${res.message}</p>`;
-                }
-            })
-            .catch(err => {
-                container.innerHTML = `<p style="color:red;">連線失敗：${err.toString()}</p>`;
-            });
-    }
-
-    function renderResults(dataList) {
-        const container = document.getElementById('resultContainer');
-        container.innerHTML = '';
-
-        if (!dataList || dataList.length === 0) {
-            container.innerHTML = "<p style='text-align:center; color:#666;'>查無資料</p>";
-            return;
-        }
-
-        dataList.forEach(item => {
-            let card = document.createElement('div');
-            card.className = 'expense-card';
-
-            // 【完全一致的消費項目/商家抓取邏輯】：對應試算表 B 欄或包含商家/項目的欄位
-            let storeName = "";
-            const keys = Object.keys(item);
-            
-            for (let key in item) {
-                let lowerKey = key.toLowerCase();
-                if ((lowerKey.includes('項目') || lowerKey.includes('商家') || lowerKey.includes('消費') || lowerKey.includes('店家') || lowerKey.includes('品名')) && !lowerKey.includes('支付')) {
-                    if (item[key] && typeof item[key] === 'string' && item[key].trim() !== "") {
-                        storeName = item[key];
-                        break;
-                    }
-                }
-            }
-            if (!storeName && keys.length >= 2) {
-                let colVal = item[keys[1]];
-                if (colVal && typeof colVal === 'string' && colVal.trim() !== "") {
-                    storeName = colVal;
-                }
-            }
-            storeName = storeName || '一般消費';
-
-            // 智慧抓取金額
-            let amount = 0;
-            for (let key in item) {
-                let lowerKey = key.toLowerCase();
-                if (lowerKey.includes('金額') || lowerKey.includes('總額') || lowerKey.includes('價')) {
-                    let val = parseFloat(item[key]);
-                    if (!isNaN(val) && val > 0) {
-                        amount = val;
-                        break;
-                    }
-                }
-            }
-            if (amount === 0) {
-                for (let key in item) {
-                    let val = parseFloat(item[key]);
-                    if (!isNaN(val) && val > 0 && key !== '數量' && key !== '單價') {
-                        amount = val;
-                        break;
-                    }
-                }
-            }
-
-            let dateStr = item['日期'] || item['應繳日期'] || '';
-            let payment = item['支付方式'] || '現金';
-            let bank = item['刷卡銀行'] || payment;
-
-            let detailsHtml = '';
-            if (item.showDetailBtn && item.details && item.details.length > 0) {
-                let detailRows = '';
-                item.details.forEach(d => {
-                    let unitPrice = Number(d['單價'] || d['價格']) || 0;
-                    let qty = Number(d['數量']) || 1;
-                    let subtotal = unitPrice * qty;
-
-                    detailRows += `
-                        <tr>
-                            <td>${d['品名'] || d['商品'] || ''}</td>
-                            <td>$${unitPrice.toLocaleString()}</td>
-                            <td>${qty}</td>
-                            <td>$${subtotal.toLocaleString()}</td>
-                        </tr>
-                    `;
-                });
-
-                detailsHtml = `
-                    <button class="toggle-detail-btn" onclick="toggleDetail(this)">
-                        🛒 查看商品明細 (${item.details.length} 項) ▼
-                    </button>
-                    <div class="detail-table-container" style="display:none;">
-                        <table class="detail-table">
-                            <thead>
-                                <tr>
-                                    <th>品名</th>
-                                    <th>單價</th>
-                                    <th>數量</th>
-                                    <th>小計</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${detailRows}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-            }
-
-            // 統一渲染卡片格式：大標題為消費項目/商家，金額在右側，下方顯示日期與支付方式
-            card.innerHTML = `
-                <div class="card-header">
-                    <span class="store-name">${storeName}</span>
-                    <span class="amount">$${amount.toLocaleString()}</span>
-                </div>
-                <div class="card-info">
-                    📅 ${dateStr} ｜ 💳 ${payment} (${bank})
-                </div>
-                ${detailsHtml}
-            `;
-            container.appendChild(card);
-        });
-    }
-
-    function toggleDetail(btn) {
-        const container = btn.nextElementSibling;
-        if (container.style.display === 'none') {
-            container.style.display = 'block';
-            btn.innerHTML = btn.innerHTML.replace('▼', '▲');
-        } else {
-            container.style.display = 'none';
-            btn.innerHTML = btn.innerHTML.replace('▲', '▼');
-        }
-    }
+      const card = `
+        <div class="account-card">
+          <div class="card-header">
+            <span>${item.item}</span>
+            <span class="card-amount">$${Number(item.amount).toLocaleString()}</span>
+          </div>
+          <div class="card-meta">
+            📅 ${item.date} ｜ 💳 ${item.paymentMethod}
+          </div>
+          ${noteHtml}
+        </div>
+      `;
+      container.innerHTML += card;
+    });
+  }
 </script>
 
 </body>
