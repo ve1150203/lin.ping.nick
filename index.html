@@ -247,12 +247,10 @@
     const rawMethod = document.getElementById('paymentMethod').value;
     const bankName = document.getElementById('bankName').value.trim();
     
-    // 組合支付方式文字（如：刷卡 (玉山銀行)）
+    // 修正支付方式字串組裝
     let finalPayment = rawMethod;
     if (rawMethod === '刷卡') {
-      finalPayment = bankName ? `刷卡 (${bankName})` : '刷卡 (刷卡)';
-    } else {
-      finalPayment = `${rawMethod} (${rawMethod})`;
+      finalPayment = bankName ? `刷卡 (${bankName})` : '刷卡';
     }
 
     const formData = {
@@ -273,7 +271,7 @@
     }).saveData(formData);
   }
 
-  // 查詢歷史帳目並渲染 (包含備註處理)
+  // 查詢歷史帳目並渲染
   function fetchHistory() {
     const query = {
       category: document.getElementById('queryCategory').value,
@@ -295,7 +293,6 @@
     }
 
     records.forEach(item => {
-      // 判斷是否有備註，有備註才渲染備註區塊
       const noteHtml = item.note ? `<div class="card-note">📝 備註：${item.note}</div>` : '';
 
       const card = `
