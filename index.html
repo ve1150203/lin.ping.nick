@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>老霖廚房</title>
+  <title>老霖廚房 - 記帳本</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -131,9 +131,9 @@
   
   <!-- 分類按鈕 -->
   <div class="category-group">
-    <button class="category-btn active" onclick="setCategory('家用支出', this)">家用支出</button>
-    <button class="category-btn" onclick="setCategory('個人支出', this)">個人支出</button>
-    <button class="category-btn" onclick="setCategory('稅金與規費', this)">稅金與規費</button>
+    <button class="category-btn active" type="button" onclick="setCategory('家用支出', this)">家用支出</button>
+    <button class="category-btn" type="button" onclick="setCategory('個人支出', this)">個人支出</button>
+    <button class="category-btn" type="button" onclick="setCategory('年度稅金與固定規費', this)">年度稅金與固定規費</button>
   </div>
 
   <form id="expenseForm" onsubmit="handleFormSubmit(event)">
@@ -247,7 +247,7 @@
     const rawMethod = document.getElementById('paymentMethod').value;
     const bankName = document.getElementById('bankName').value.trim();
     
-    // 修正支付方式字串組裝
+    // 組合支付方式文字（如：刷卡 (玉山銀行)）
     let finalPayment = rawMethod;
     if (rawMethod === '刷卡') {
       finalPayment = bankName ? `刷卡 (${bankName})` : '刷卡';
@@ -263,15 +263,21 @@
       note: document.getElementById('note').value
     };
 
-    // 呼叫 Google Apps Script 後端 saveData 函數
-    google.script.run.withSuccessHandler(res => {
-      alert('儲存成功！');
-      document.getElementById('expenseForm').reset();
-      toggleBankInput();
-    }).saveData(formData);
+    // 呼叫後端 saveData
+    google.script.run
+      .withSuccessHandler(function(res) {
+        alert('儲存成功！');
+        document.getElementById('expenseForm').reset();
+        document.getElementById('date').value = new Date().toISOString().split('T')[0];
+        toggleBankInput();
+      })
+      .withFailureHandler(function(err) {
+        alert('儲存失敗：' + err.message);
+      })
+      .saveData(formData);
   }
 
-  // 查詢歷史帳目並渲染
+  // 查詢歷史帳目
   function fetchHistory() {
     const query = {
       category: document.getElementById('queryCategory').value,
@@ -279,7 +285,15 @@
       endDate: document.getElementById('endDate').value
     };
 
-    google.script.run.withSuccessHandler(renderHistory).getHistoryData(query);
+    const container = document.getElementById('historyList');
+    container.innerHTML = '<div style="text-align:center; color:#666; padding:10px;">查詢中...</div>';
+
+    google.script.run
+      .withSuccessHandler(renderHistory)
+      .withFailureHandler(function(err) {
+        container.innerHTML = `<div style="text-align:center; color:red; padding:10px;">查詢失敗：${err.message}</div>`;
+      })
+      .getHistoryData(query);
   }
 
   // 渲染歷史紀錄列表
